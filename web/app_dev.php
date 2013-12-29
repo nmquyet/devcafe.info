@@ -1,5 +1,11 @@
 <?php
 
+if (extension_loaded('xhprof') && isset($_GET['profile'])) {
+    include_once '/usr/local/lib/php/xhprof/utils/xhprof_lib.php';
+    include_once '/usr/local/lib/php/xhprof/utils/xhprof_runs.php';
+    xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY);
+}
+
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Debug\Debug;
 
@@ -26,5 +32,16 @@ $kernel = new AppKernel('dev', true);
 $kernel->loadClassCache();
 $request = Request::createFromGlobals();
 $response = $kernel->handle($request);
+if (extension_loaded('xhprof') && isset($_GET['profile'])) {
+    $profiler_namespace = 'devcafe';  // namespace for your application
+    $xhprof_data = xhprof_disable();
+    $xhprof_runs = new XHProfRuns_Default();
+    $run_id = $xhprof_runs->save_run($xhprof_data, $profiler_namespace);
+ 
+    // url to the XHProf UI libraries (change the host name and path)
+    $profiler_url = sprintf('http://localhost/php53-xhprof/xhprof_html/index.php?run=%s&source=%s', $run_id, $profiler_namespace);
+    echo '<a href="'. $profiler_url .'" target="_blank">Profiler output</a>';
+}
 $response->send();
 $kernel->terminate($request, $response);
+
